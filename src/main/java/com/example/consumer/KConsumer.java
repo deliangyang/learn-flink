@@ -31,7 +31,7 @@ public class KConsumer {
 
         for (int i = 0; i < 100; i++) {
             System.out.println("i:" + i);
-            ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(1L));
+            ConsumerRecords<String, String> records = consumer.poll(1);
             for (ConsumerRecord<String, String> record: records) {
                 System.out.println("data: " + record.key() + "xxx" + record.value());
                 //consumer.commitAsync();
