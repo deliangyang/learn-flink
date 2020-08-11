@@ -12,3 +12,5 @@ bin/flink run /mnt/flink-test/out/artifacts/scala_wordcount_jar/untitled.jar
 ```bash
 nc -lkp 9999
 ```
+
+## [Flink Dashboard](http://loclahost:8081)
