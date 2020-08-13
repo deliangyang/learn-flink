@@ -4,6 +4,8 @@ import java.lang
 import java.util.Properties
 
 import org.apache.flink.api.common.serialization.SimpleStringSchema
+import org.apache.flink.configuration.Configuration
+import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.connectors.kafka._
@@ -11,6 +13,7 @@ import org.apache.flink.streaming.connectors.redis.RedisSink
 import org.apache.flink.streaming.connectors.redis.common.config.FlinkJedisPoolConfig
 import org.apache.flink.streaming.connectors.redis.common.mapper.{RedisCommand, RedisCommandDescription, RedisMapper}
 import org.apache.kafka.clients.producer.ProducerRecord
+import redis.clients.jedis.Jedis
 
 
 object KafkaTest {
@@ -70,6 +73,9 @@ object KafkaTest {
 
     counter.addSink(redisSink)
 
+    // custom define
+    counter.addSink(new RedisRichSink)
+
     env.execute("flink-kafka")
   }
 
@@ -79,5 +85,25 @@ object KafkaTest {
 class Tt(topic: String) extends KafkaSerializationSchema[(String, Int)] {
   override def serialize(t: (String, Int), aLong: lang.Long): ProducerRecord[Array[Byte], Array[Byte]] = {
     new ProducerRecord[Array[Byte], Array[Byte]](topic, t._1.getBytes(), t._2.toString.getBytes())
+  }
+}
+
+class RedisRichSink extends RichSinkFunction[(String, Int)] {
+  var redisCon: Jedis = _
+  override def open(parameters: Configuration): Unit = {
+    super.open(parameters)
+    this.redisCon = new Jedis("localhost", 6379)
+  }
+
+  override def close(): Unit = {
+    super.close()
+    if (this.redisCon != null) {
+      this.redisCon.close()
+    }
+  }
+
+  override def invoke(value: (String, Int), context: SinkFunction.Context[_]): Unit = {
+    // super.invoke(value, context)
+    this.redisCon.set(value._1, value._2.toString)
   }
 }
