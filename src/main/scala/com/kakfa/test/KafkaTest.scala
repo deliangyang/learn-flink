@@ -7,6 +7,9 @@ import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.connectors.kafka._
+import org.apache.flink.streaming.connectors.redis.RedisSink
+import org.apache.flink.streaming.connectors.redis.common.config.FlinkJedisPoolConfig
+import org.apache.flink.streaming.connectors.redis.common.mapper.{RedisCommand, RedisCommandDescription, RedisMapper}
 import org.apache.kafka.clients.producer.ProducerRecord
 
 
@@ -43,30 +46,29 @@ object KafkaTest {
       FlinkKafkaProducer.Semantic.EXACTLY_ONCE
     ))
 
+
 //    val producer = new FlinkKafkaProducer(
 //      "test",
 //      new SimpleStringSchema(),
 //      properties
 //    )
-//    val conf = new FlinkJedisPoolConfig.Builder().setHost("10.0.0.11").setPort(7000).build()
-//
-//    val redisSink = new RedisSink[String](conf, new RedisMapper[String] {
-//      override def getCommandDescription: RedisCommandDescription = {
-//        new RedisCommandDescription(RedisCommand.HSET, "sensor")
-//      }
-//
-//      override def getKeyFromData(t: String): String = {
-//        t.split(",")(0)
-//      }
-//
-//      override def getValueFromData(t: String): String = {
-//        t.split(",")(1)
-//      }
-//    })
-//
-//    val a = new RichSinkFunction[String] {}
-//
-//    counter.addSink(a)
+    val conf = new FlinkJedisPoolConfig.Builder().setHost("127.0.0.1").setPort(6379).build()
+
+    val redisSink = new RedisSink[(String, Int)](conf, new RedisMapper[(String, Int)] {
+      override def getCommandDescription: RedisCommandDescription = {
+        new RedisCommandDescription(RedisCommand.HSET, "sensor")
+      }
+
+      override def getKeyFromData(t: (String, Int)): String = {
+        t._1
+      }
+
+      override def getValueFromData(t: (String, Int)): String = {
+        t._2.toString
+      }
+    })
+
+    counter.addSink(redisSink)
 
     env.execute("flink-kafka")
   }
