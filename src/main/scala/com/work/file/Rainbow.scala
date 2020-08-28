@@ -1,27 +1,48 @@
 package com.work.file
 
+import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.api.scala.ExecutionEnvironment
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.{JsonIgnoreProperties, JsonProperty}
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.streaming.api.scala._
+
+import scala.beans.BeanProperty
 
 case class WordCount(word: String, count: Int)
 
+
 object Rainbow {
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  case class MyValue(
+                      @JsonProperty("user") @BeanProperty user: Long,
+                      @JsonProperty("ip") @BeanProperty ip: String,
+                      @JsonProperty("path") @BeanProperty path: String,
+                      @JsonProperty("method") @BeanProperty method: String
+                    )
+
+
   def main(args: Array[String]): Unit = {
+    val params = ParameterTool.fromArgs(args)
+
     val env = ExecutionEnvironment.getExecutionEnvironment
-    val input = env.fromElements(
-      WordCount("hello", 1),
-      WordCount("world", 2)) // Case Class Data Set
+    env.getConfig.setGlobalJobParameters(params)
+    val text = env.readTextFile(params.get("input"))
+    val mapper = new ObjectMapper
 
-    input.groupBy(_.word)
-
-    val input2 = env.fromElements(("hello", 1), ("world", 2), ("world", 2), ("world", 2)) // Tuple2 Data Set
-
-    val counter = input2.map {
-      value => (value._1, value._2)
-    }.groupBy(0)
-        .sum(1)
-    counter.print()
-    //env.execute("helloworld")
+    val counter = text.flatMap {
+      _.split("\n")
+    }
+      .map {
+        value => {
+          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+          ((node.method, node.path), 1)
+        }
+      }.groupBy(0)
+      .sum(1)
+    counter.writeAsCsv(params.get("output"))
+    env.execute("helloworld")
 
   }
+
 }
