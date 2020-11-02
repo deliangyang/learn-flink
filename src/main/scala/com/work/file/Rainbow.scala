@@ -76,6 +76,29 @@ object Rainbow {
 //      .sum(1)
 //    counter23.writeAsCsv(params.get("output23"))
 
+        val counter23 = text.flatMap {
+          _.split("\n")
+        }
+          .map {
+            value => {
+              val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+              ((node.method, node.path),  node.extra.executionTime)
+            }
+          }.groupBy(0)
+          .minBy(1)
+
+    val counter233 = text.flatMap {
+      _.split("\n")
+    }
+      .map {
+        value => {
+          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+          ((node.method, node.path),  node.extra.executionTime)
+        }
+      }.groupBy(0)
+      .maxBy(1)
+    val result = counter23.union(counter233)
+    result.writeAsCsv(params.get("output23"))
 
 
     env.execute("helloworld")
