@@ -81,7 +81,7 @@ object Time {
       })
 
     result3.writeAsCsv(params.get("output_time"))
-    env.execute("log_stat")
+    env.execute("log_time_stat")
   }
 
 }

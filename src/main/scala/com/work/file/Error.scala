@@ -29,7 +29,7 @@ object Error {
       .sum(1)
     counter2.writeAsCsv(params.get("output_error"))
 
-    env.execute("log_stat")
+    env.execute("log_error_stat")
   }
 
 }

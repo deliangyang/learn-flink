@@ -29,7 +29,7 @@ object Rainbow {
       .sum(1)
 
     counter.writeAsCsv(params.get("output_user"))
-    env.execute("log_stat")
+    env.execute("log_api_visit_stat")
   }
 
   def translate(time: Int): Int = {
