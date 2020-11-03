@@ -36,110 +36,94 @@ object Rainbow {
     val env = ExecutionEnvironment.getExecutionEnvironment
     env.getConfig.setGlobalJobParameters(params)
     val text = env.readTextFile(params.get("input"))
+    val op_t = params.get("op_t")
     val mapper = new ObjectMapper
 
-    val counter = text.flatMap {
+    val split = text.flatMap {
       _.split("\n")
     }
-      .map {
-        value => {
-          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
-          ((node.method, node.path, node.user, node.ip), 1)
-        }
-      }.groupBy(0)
-      .sum(1)
-    counter.writeAsCsv(params.get("output_user"))
 
-    val counter2 = text.flatMap {
-      _.split("\n")
+    if (op_t == "user") {
+      val counter = split
+        .map {
+          value => {
+            val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+            ((node.method, node.path, node.user, node.ip), 1)
+          }
+        }.groupBy(0)
+        .sum(1)
+      counter.writeAsCsv(params.get("output_user"))
+    } else if (op_t == "error") {
+      val counter2 = split
+        .map {
+          value => {
+            val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+            ((node.method, node.path, node.extra.errno), 1)
+          }
+        }.groupBy(0)
+        .sum(1)
+      counter2.writeAsCsv(params.get("output_error"))
+    } else {
+      val counter3 = split
+        .map {
+          value => {
+            val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+            ((node.method, node.path), 1)
+          }
+        }.groupBy(0)
+        .sum(1)
+
+      val executeTime = split
+        .map {
+          value => {
+            val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+            ((node.method, node.path), node.extra.executionTime)
+          }
+        }.groupBy(0)
+
+      val counter4 = executeTime
+        .aggregate(Aggregations.SUM, 1)
+
+      val counter23 = executeTime
+        .minBy(1)
+
+      val counter233 = executeTime
+        .maxBy(1)
+
+      val result = counter23.rightOuterJoin(counter233)
+        .where(0)
+        .equalTo(0)
+        .apply((first, second) => {
+          if (second == null) {
+            (first._1, first._2, "null")
+          } else {
+            (first._1, first._2, second._2)
+          }
+        })
+
+      val result2 = result.rightOuterJoin(counter3)
+        .where(0)
+        .equalTo(0)
+        .apply((first, second) => {
+          if (second == null) {
+            (first._1, first._2, first._3, "0")
+          } else {
+            (first._1, first._2, first._3, second._2)
+          }
+        })
+
+      val result3 = result2.rightOuterJoin(counter4)
+        .where(0)
+        .equalTo(0)
+        .apply((first, second) => {
+          if (second == null) {
+            (first._1, first._2, first._3, first._4, "0")
+          } else {
+            (first._1, first._2, first._3, first._4, second._2)
+          }
+        })
+      result3.writeAsCsv(params.get("output_time"))
     }
-      .map {
-        value => {
-          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
-          ((node.method, node.path, node.extra.errno), 1)
-        }
-      }.groupBy(0)
-      .sum(1)
-    counter2.writeAsCsv(params.get("output_error"))
-
-    val counter3 = text.flatMap {
-      _.split("\n")
-    }
-      .map {
-        value => {
-          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
-          ((node.method, node.path), 1)
-        }
-      }.groupBy(0)
-      .sum(1)
-    // counter23.writeAsCsv(params.get("output23"))
-    val counter4 = text.flatMap {
-      _.split("\n")
-    }
-      .map {
-        value => {
-          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
-          ((node.method, node.path), node.extra.executionTime)
-        }
-      }.groupBy(0)
-      .aggregate(Aggregations.SUM, 1)
-
-
-    val counter23 = text.flatMap {
-      _.split("\n")
-    }
-      .map {
-        value => {
-          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
-          ((node.method, node.path), node.extra.executionTime)
-        }
-      }.groupBy(0)
-      .minBy(1)
-    // .aggregate()
-
-    val counter233 = text.flatMap {
-      _.split("\n")
-    }
-      .map {
-        value => {
-          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
-          ((node.method, node.path), node.extra.executionTime)
-        }
-      }.groupBy(0)
-      .maxBy(1)
-
-    val result = counter23.rightOuterJoin(counter233)
-      .where(0)
-      .equalTo(0)
-      .apply((first, second) => {
-        if (second == null) {
-          (first._1, first._2, "null")
-        } else {
-          (first._1, first._2, second._2)
-        }
-      })
-    val result2 = result.rightOuterJoin(counter3)
-      .where(0)
-      .equalTo(0)
-      .apply((first, second) => {
-        if (second == null) {
-          (first._1, first._2, first._3, "0")
-        } else {
-          (first._1, first._2, first._3, second._2)
-        }
-      })
-
-    val result3 = result2.rightOuterJoin(counter4)
-      .where(0)
-      .equalTo(0)
-      .apply((first, second) => {
-        if (second == null) {
-          (first._1, first._2, first._3, first._4, "0")
-        } else {
-          (first._1, first._2, first._3, first._4, second._2)
-        }
-      })
-    result3.writeAsCsv(params.get("output_time"))
 
     env.execute("log_stat")
   }
