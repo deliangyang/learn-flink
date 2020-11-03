@@ -28,7 +28,7 @@ object Rainbow {
       }.groupBy(0)
       .sum(1)
 
-    counter.writeAsCsv(params.get("output_user"))
+    counter.writeAsCsv(params.get("output"))
     env.execute("log_api_visit_stat")
   }
 

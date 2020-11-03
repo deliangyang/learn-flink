@@ -8,8 +8,8 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.{JsonIg
 @JsonIgnoreProperties(ignoreUnknown = true)
 case class
 Extra(
-       @JsonProperty("errno") @BeanProperty errno: Int,
-       @JsonProperty("executionTime") @BeanProperty executionTime: Int,
-       @JsonProperty("upstreamCost") @BeanProperty upstreamCost: Int,
+       @JsonProperty("errno") @BeanProperty errno: Long,
+       @JsonProperty("executionTime") @BeanProperty executionTime: Long,
+       @JsonProperty("upstreamCost") @BeanProperty upstreamCost: Long,
      )
 

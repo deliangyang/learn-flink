@@ -27,7 +27,7 @@ object Error {
         }
       }.groupBy(0)
       .sum(1)
-    counter2.writeAsCsv(params.get("output_error"))
+    counter2.writeAsCsv(params.get("output"))
 
     env.execute("log_error_stat")
   }

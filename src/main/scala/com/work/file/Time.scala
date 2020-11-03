@@ -21,15 +21,6 @@ object Time {
       _.split("\n")
     }
 
-    val counter3 = split
-      .map {
-        value => {
-          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[Log])
-          ((node.method, node.path), 1)
-        }
-      }.groupBy(0)
-      .sum(1)
-
     val executeTime = split
       .map {
         value => {
@@ -38,16 +29,13 @@ object Time {
         }
       }.groupBy(0)
 
-    val counter4 = executeTime
-      .aggregate(Aggregations.SUM, 1)
+    val counter3 = executeTime.sum(1)
+    val counter4 = executeTime.aggregate(Aggregations.SUM, 1)
+    val counter5 = executeTime.minBy(1)
+    val counter6 = executeTime.maxBy(1)
 
-    val counter23 = executeTime
-      .minBy(1)
 
-    val counter233 = executeTime
-      .maxBy(1)
-
-    val result = counter23.rightOuterJoin(counter233)
+    val result = counter5.rightOuterJoin(counter6)
       .where(0)
       .equalTo(0)
       .apply((first, second) => {
@@ -80,7 +68,7 @@ object Time {
         }
       })
 
-    result3.writeAsCsv(params.get("output_time"))
+    result3.writeAsCsv(params.get("output"))
     env.execute("log_time_stat")
   }
 
