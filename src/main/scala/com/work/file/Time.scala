@@ -1,11 +1,11 @@
 package com.work.file
 
+import org.apache.flink.api.common.functions.ReduceFunction
 import org.apache.flink.api.java.aggregation.Aggregations
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.api.scala.ExecutionEnvironment
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.streaming.api.scala._
-
 
 object Time {
 
@@ -25,17 +25,23 @@ object Time {
       .map {
         value => {
           val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[Log])
-          ((node.method, node.path), node.extra.executionTime)
+          ((node.method, node.path), node.extra.executionTime, 1)
         }
       }.groupBy(0)
 
-    val counter3 = executeTime.sum(1)
-    val counter4 = executeTime.aggregate(Aggregations.SUM, 1)
-    val counter5 = executeTime.minBy(1)
-    val counter6 = executeTime.maxBy(1)
+//    val counter3 = executeTime.reduce(new ReduceFunction[((String, String), Info)] {
+//      override def reduce(t: ((String, String), Info), t1: ((String, String), Info)): ((String, String), Info) = {
+//        return (t._1, t._2 + 1)
+//      }
+//    })
+    val counter3 = executeTime.minBy(1)
+    val counter4 = executeTime.maxBy(1)
+    val counter5 = executeTime.sum(2)
+    val counter6 = executeTime.aggregate(Aggregations.SUM, 1)
 
+    // min -> max -> count -> agg sum
 
-    val result = counter5.rightOuterJoin(counter6)
+    val result = counter3.rightOuterJoin(counter4)
       .where(0)
       .equalTo(0)
       .apply((first, second) => {
@@ -46,18 +52,18 @@ object Time {
         }
       })
 
-    val result2 = result.rightOuterJoin(counter3)
+    val result2 = result.rightOuterJoin(counter5)
       .where(0)
       .equalTo(0)
       .apply((first, second) => {
         if (second == null) {
           (first._1, first._2, first._3, "0")
         } else {
-          (first._1, first._2, first._3, second._2)
+          (first._1, first._2, first._3, second._3)
         }
       })
 
-    val result3 = result2.rightOuterJoin(counter4)
+    val result3 = result2.rightOuterJoin(counter6)
       .where(0)
       .equalTo(0)
       .apply((first, second) => {
