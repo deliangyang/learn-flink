@@ -6,10 +6,11 @@ import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMap
 import org.apache.flink.streaming.api.scala._
 
 
-object Rainbow {
+object Error {
 
   def main(args: Array[String]): Unit = {
     val params = ParameterTool.fromArgs(args)
+
     val env = ExecutionEnvironment.getExecutionEnvironment
     env.getConfig.setGlobalJobParameters(params)
     val text = env.readTextFile(params.get("input"))
@@ -18,31 +19,17 @@ object Rainbow {
     val split = text.flatMap {
       _.split("\n")
     }
-
-    val counter = split
+    val counter2 = split
       .map {
         value => {
           val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[Log])
-          ((node.method, node.path, node.user, node.ip), 1)
+          ((node.method, node.path, node.extra.errno), 1)
         }
       }.groupBy(0)
       .sum(1)
+    counter2.writeAsCsv(params.get("output_error"))
 
-    counter.writeAsCsv(params.get("output_user"))
     env.execute("log_stat")
-  }
-
-  def translate(time: Int): Int = {
-    if (0 < time && time < 100) {
-      return 0
-    } else if (100 < time && time < 200) {
-      return 1
-    } else if (200 < time && time < 500) {
-      return 2
-    } else if (500 < time && time < 1000) {
-      return 5
-    }
-    10
   }
 
 }
