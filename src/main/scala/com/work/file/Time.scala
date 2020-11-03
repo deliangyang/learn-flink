@@ -25,7 +25,7 @@ object Time {
       .map {
         value => {
           val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[Log])
-          ((node.method, node.path), node.extra.executionTime, 1)
+          ((node.method, node.path, translate(node.extra.executionTime)), node.extra.executionTime, 1)
         }
       }.groupBy(0)
 
@@ -76,6 +76,19 @@ object Time {
 
     result3.writeAsCsv(params.get("output"))
     env.execute("log_time_stat")
+  }
+
+  def translate(time: Long): Int = {
+    if (0 < time && time < 100) {
+      return 0
+    } else if (100 <= time && time < 200) {
+      return 1
+    } else if (200 <= time && time < 500) {
+      return 2
+    } else if (500 <= time && time < 1000) {
+      return 5
+    }
+    10
   }
 
 }

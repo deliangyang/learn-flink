@@ -32,17 +32,4 @@ object Rainbow {
     env.execute("log_api_visit_stat")
   }
 
-  def translate(time: Int): Int = {
-    if (0 < time && time < 100) {
-      return 0
-    } else if (100 < time && time < 200) {
-      return 1
-    } else if (200 < time && time < 500) {
-      return 2
-    } else if (500 < time && time < 1000) {
-      return 5
-    }
-    10
-  }
-
 }
