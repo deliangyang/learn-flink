@@ -1,14 +1,12 @@
 package com.work.file
 
 import java.beans.BeanProperty
-
+import org.apache.flink.api.java.aggregation.Aggregations
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.api.scala.ExecutionEnvironment
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.{JsonIgnoreProperties, JsonProperty}
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.streaming.api.scala._
-
-// case class WordCount(word: String, count: Int)
 
 
 object Rainbow {
@@ -50,7 +48,7 @@ object Rainbow {
         }
       }.groupBy(0)
       .sum(1)
-    counter.writeAsCsv(params.get("output"))
+    counter.writeAsCsv(params.get("output_user"))
 
     val counter2 = text.flatMap {
       _.split("\n")
@@ -62,30 +60,42 @@ object Rainbow {
         }
       }.groupBy(0)
       .sum(1)
-    counter2.writeAsCsv(params.get("output2"))
+    counter2.writeAsCsv(params.get("output_error"))
 
-//    val counter23 = text.flatMap {
-//      _.split("\n")
-//    }
-//      .map {
-//        value => {
-//          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
-//          ((node.method, node.path, translate(node.extra.executionTime)), 1)
-//        }
-//      }.groupBy(0)
-//      .sum(1)
-//    counter23.writeAsCsv(params.get("output23"))
-
-        val counter23 = text.flatMap {
-          _.split("\n")
+    val counter3 = text.flatMap {
+      _.split("\n")
+    }
+      .map {
+        value => {
+          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+          ((node.method, node.path), 1)
         }
-          .map {
-            value => {
-              val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
-              ((node.method, node.path),  node.extra.executionTime)
-            }
-          }.groupBy(0)
-          .minBy(1)
+      }.groupBy(0)
+      .sum(1)
+    // counter23.writeAsCsv(params.get("output23"))
+    val counter4 = text.flatMap {
+      _.split("\n")
+    }
+      .map {
+        value => {
+          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+          ((node.method, node.path), node.extra.executionTime)
+        }
+      }.groupBy(0)
+      .aggregate(Aggregations.SUM, 1)
+
+
+    val counter23 = text.flatMap {
+      _.split("\n")
+    }
+      .map {
+        value => {
+          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
+          ((node.method, node.path), node.extra.executionTime)
+        }
+      }.groupBy(0)
+      .minBy(1)
+    // .aggregate()
 
     val counter233 = text.flatMap {
       _.split("\n")
@@ -93,16 +103,45 @@ object Rainbow {
       .map {
         value => {
           val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[MyValue])
-          ((node.method, node.path),  node.extra.executionTime)
+          ((node.method, node.path), node.extra.executionTime)
         }
       }.groupBy(0)
       .maxBy(1)
-    val result = counter23.union(counter233)
-    result.writeAsCsv(params.get("output23"))
 
+    val result = counter23.rightOuterJoin(counter233)
+      .where(0)
+      .equalTo(0)
+      .apply((first, second) => {
+        if (second == null) {
+          (first._1, first._2, "null")
+        } else {
+          (first._1, first._2, second._2)
+        }
+      })
+    val result2 = result.rightOuterJoin(counter3)
+      .where(0)
+      .equalTo(0)
+      .apply((first, second) => {
+        if (second == null) {
+          (first._1, first._2, first._3, "0")
+        } else {
+          (first._1, first._2, first._3, second._2)
+        }
+      })
 
-    env.execute("helloworld")
+    val result3 = result2.rightOuterJoin(counter4)
+      .where(0)
+      .equalTo(0)
+      .apply((first, second) => {
+        if (second == null) {
+          (first._1, first._2, first._3, first._4, "0")
+        } else {
+          (first._1, first._2, first._3, first._4, second._2)
+        }
+      })
+    result3.writeAsCsv(params.get("output_time"))
 
+    env.execute("log_stat")
   }
 
   def translate(time: Int): Int = {
