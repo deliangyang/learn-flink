@@ -1,5 +1,6 @@
 package com.work.file
 
+import org.apache.flink.api.common.operators.Order
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.api.scala.ExecutionEnvironment
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper
@@ -27,6 +28,8 @@ object Rainbow {
         }
       }.groupBy(0)
       .sum(1)
+      .sortPartition(1, Order.DESCENDING)
+      .first(1000)
 
     counter.writeAsCsv(params.get("output"))
     env.execute("log_api_visit_stat")
