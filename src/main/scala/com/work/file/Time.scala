@@ -81,7 +81,7 @@ object Time {
   }
 
   def translate(time: Long): Int = {
-    if (0 < time && time < 100) {
+    if (0 <= time && time < 100) {
       return 0
     } else if (100 <= time && time < 200) {
       return 1
