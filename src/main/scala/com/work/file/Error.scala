@@ -22,10 +22,17 @@ object Error {
     val counter2 = split
       .map {
         value => {
-          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[Log])
-          ((node.method, node.path, node.extra.errno), 1)
+          try {
+            val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[Log])
+            Some((node.method, node.path, node.extra.errno), 1)
+          } catch {
+            case _: Exception => None
+          }
         }
-      }.groupBy(0)
+      }
+      .filter(x => x.nonEmpty)
+      .map(x => x.get)
+      .groupBy(0)
       .sum(1)
     counter2.writeAsCsv(params.get("output"))
 

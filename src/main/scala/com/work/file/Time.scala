@@ -24,16 +24,18 @@ object Time {
     val executeTime = split
       .map {
         value => {
-          val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[Log])
-          ((node.method, node.path, translate(node.extra.executionTime)), node.extra.executionTime, 1)
+          try {
+            val node = mapper.readValue(value.substring(value.indexOf('{')), classOf[Log])
+            Some((node.method, node.path, translate(node.extra.executionTime)), node.extra.executionTime, 1)
+          } catch {
+            case _: Exception => None
+          }
         }
-      }.groupBy(0)
+      }
+      .filter(x => x.nonEmpty)
+      .map(x => x.get)
+      .groupBy(0)
 
-//    val counter3 = executeTime.reduce(new ReduceFunction[((String, String), Info)] {
-//      override def reduce(t: ((String, String), Info), t1: ((String, String), Info)): ((String, String), Info) = {
-//        return (t._1, t._2 + 1)
-//      }
-//    })
     val counter3 = executeTime.minBy(1)
     val counter4 = executeTime.maxBy(1)
     val counter5 = executeTime.sum(2)
