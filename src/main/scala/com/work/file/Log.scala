@@ -12,5 +12,5 @@ Log(
      @JsonProperty("user") @BeanProperty user: String,
      @JsonProperty("path") @BeanProperty path: String,
      @JsonProperty("extra") @BeanProperty extra: Extra,
-     @JsonProperty("method") @BeanProperty method: String,
+     @JsonProperty("method") @BeanProperty method: String
    )
